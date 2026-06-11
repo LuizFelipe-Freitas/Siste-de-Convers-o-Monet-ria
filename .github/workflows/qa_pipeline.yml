@@ -1,0 +1,53 @@
+name: Automação de QA - Fintech API
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Permissões necessárias para publicar a página
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  testes-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup do Python (3.11)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Instalação das Dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🧪 Execução dos Testes e Geração do Dashboard HTML
+        run: |
+          mkdir -p public
+          # Executa o pytest e salva um arquivo index.html contendo todo o relatório
+          pytest --html=public/index.html --self-contained-html
+
+      - name: 💾 Salvar Artefato
+        uses: actions/upload-artifact@v4
+        if: always() # Salva o relatório mesmo se os testes falharem
+        with:
+          name: dashboard-testes-html
+          path: public/index.html
+
+      - name: 🚀 Deploy Automático no GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: always() 
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          keep_files: false
